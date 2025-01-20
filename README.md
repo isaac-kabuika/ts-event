@@ -1,11 +1,11 @@
-# ts-event
+# safe-event
 
 A TypeScript event generator library that creates strongly-typed event definitions with runtime validation.
 
 ## Installation
 
 ```bash
-npm install ts-event
+npm install safe-event
 ```
 
 ## Usage
