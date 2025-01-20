@@ -1,6 +1,6 @@
 {
   "name": "safe-event",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "TypeScript event code generator from JSON schemas",
   "main": "dist/index.js",
   "bin": {
@@ -10,7 +10,6 @@
     "build": "tsc && node ./dist/copy-template.js",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build",
-    "publish": "npm run build && npm pack && npm publish",
     "postinstall": "node ./dist/postinstall.js"
   },
   "keywords": [
