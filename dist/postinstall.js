@@ -53,18 +53,19 @@ function ensureDirectoryExists(dirPath) {
     }
 }
 function createDefaultSchema(schemaDir) {
-    const defaultSchemaPath = path.join(schemaDir, "default-events.json");
+    const defaultSchemaPath = path.join(schemaDir, "shared-events.json");
     if (!fs.existsSync(defaultSchemaPath)) {
         const defaultSchema = {
-            prefix: "default",
+            domain: "shared",
             events: {
-                HEALTH_CHECK: {
+                "timestamp.created": {
                     schema: {
                         type: "object",
                         properties: {
-                            myMessageField: { type: "string" },
+                            comment: { type: "string" },
+                            unix: { type: "number" },
                         },
-                        required: ["status"],
+                        required: ["unix"],
                         additionalProperties: false,
                     },
                 },

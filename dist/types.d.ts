@@ -7,7 +7,7 @@ export interface EventDefinition {
     };
 }
 export interface EventsConfig {
-    prefix: string;
+    domain: string;
     events: Record<string, EventDefinition>;
 }
 export interface Config {

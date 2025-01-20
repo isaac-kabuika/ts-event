@@ -41,11 +41,7 @@ class EventGenerator {
         this.config = config;
     }
     generateEventClass(eventName, schema) {
-        const className = eventName
-            .toLowerCase()
-            .split("_")
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join("");
+        const className = eventName;
         const interfaceProps = Object.entries(schema.properties)
             .map(([key, value]) => {
             const type = value.type === "string"
@@ -92,12 +88,15 @@ ${interfaceProps}
 `;
     }
     generateFile(config) {
-        const prefix = config.prefix.charAt(0).toUpperCase() + config.prefix.slice(1);
-        const enumDef = `export enum ${prefix}Events {
+        const domain = config.domain;
+        const enumDef = `export const ${domain}Events = {
 ${Object.keys(config.events)
-            .map((key) => `  ${key} = "${key.toLowerCase().replace(/_/g, "-")}"`)
+            .map((key) => `  "${key}": "${domain}:${key}"`)
             .join(",\n")}
-}`;
+} as const;
+
+export type ${domain}EventTypes = typeof ${domain}Events[keyof typeof ${domain}Events];
+`;
         const validator = `
 import Ajv from "ajv";
 
@@ -124,7 +123,7 @@ ${eventClasses}
     generate() {
         for (const eventFile of this.config.eventFiles) {
             const config = JSON.parse(fs.readFileSync(eventFile, "utf-8"));
-            const outputPath = path.join(this.config.outputDir, `${config.prefix}-events.ts`);
+            const outputPath = path.join(this.config.outputDir, `${config.domain}-events.ts`);
             if (!fs.existsSync(this.config.outputDir)) {
                 fs.mkdirSync(this.config.outputDir, { recursive: true });
             }
