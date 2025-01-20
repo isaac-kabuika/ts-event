@@ -10,11 +10,7 @@ export class EventGenerator {
   }
 
   private generateEventClass(eventName: string, schema: any): string {
-    const className = eventName
-      .toLowerCase()
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join("");
+    const className = eventName;
 
     const interfaceProps = Object.entries(schema.properties)
       .map(([key, value]: [string, any]) => {
@@ -65,14 +61,16 @@ ${interfaceProps}
   }
 
   private generateFile(config: EventsConfig): string {
-    const prefix =
-      config.prefix.charAt(0).toUpperCase() + config.prefix.slice(1);
+    const domain = config.domain;
 
-    const enumDef = `export enum ${prefix}Events {
+    const enumDef = `export const ${domain}Events = {
 ${Object.keys(config.events)
-  .map((key) => `  ${key} = "${key.toLowerCase().replace(/_/g, "-")}"`)
+  .map((key) => `  "${key}": "${domain}:${key}"`)
   .join(",\n")}
-}`;
+} as const;
+
+export type ${domain}EventTypes = typeof ${domain}Events[keyof typeof ${domain}Events];
+`;
 
     const validator = `
 import Ajv from "ajv";
@@ -108,7 +106,7 @@ ${eventClasses}
 
       const outputPath = path.join(
         this.config.outputDir,
-        `${config.prefix}-events.ts`
+        `${config.domain}-events.ts`
       );
 
       if (!fs.existsSync(this.config.outputDir)) {
