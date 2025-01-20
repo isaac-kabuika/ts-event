@@ -28,7 +28,7 @@ Configuration options:
 - `typePrefix`: Optional prefix for generated type names
 - `typeSuffix`: Optional suffix for generated type names (defaults to "Event")
 
-2. Create your event schema files in the schema directory (e.g. `event-schemas/backend-events.json`):
+2. Create your event schema files in the schema directory (e.g. `event-schemas/backend-events.json`). The schema format follows the [Ajv JSON Schema specification](https://ajv.js.org/json-schema.html):
 
 ```json
 {
@@ -60,6 +60,16 @@ Configuration options:
   }
 }
 ```
+
+The schema objects support all JSON Schema keywords supported by Ajv including:
+
+- Basic validation: type, enum, const
+- Numbers: maximum/minimum, multipleOf
+- Strings: maxLength/minLength, pattern, format
+- Arrays: maxItems/minItems, uniqueItems, items
+- Objects: properties, required, additionalProperties
+- Compound keywords: allOf, anyOf, oneOf, not
+- And more - see the [full Ajv specification](https://ajv.js.org/json-schema.html)
 
 3. Generate TypeScript types using the CLI:
 
