@@ -10,16 +10,25 @@ npm install ts-event
 
 ## Usage
 
-1. Create a configuration file `.ts-event.config.json` in your project root:
+1. After installation, a `safe-event.config.json` file will be created in your project root with default settings. You can modify it to match your needs:
 
 ```json
 {
-  "eventFiles": ["./src/events/backend-events.json"],
-  "outputDir": "./src/events/generated"
+  "schemaDir": "./event-schemas",
+  "outputDir": "./src/generated",
+  "typePrefix": "",
+  "typeSuffix": "Event"
 }
 ```
 
-2. Define your events in JSON files (e.g. `backend-events.json`):
+Configuration options:
+
+- `schemaDir`: Directory containing your JSON schema files
+- `outputDir`: Directory where generated TypeScript files will be placed
+- `typePrefix`: Optional prefix for generated type names
+- `typeSuffix`: Optional suffix for generated type names (defaults to "Event")
+
+2. Create your event schema files in the schema directory (e.g. `event-schemas/backend-events.json`):
 
 ```json
 {
@@ -55,7 +64,7 @@ npm install ts-event
 3. Generate TypeScript types using the CLI:
 
 ```bash
-npx ts-event
+npx safe-event
 ```
 
 4. Use the generated types in your code:
@@ -63,12 +72,16 @@ npx ts-event
 ```typescript
 import {
   BackendEvents,
-  CreateUserEventData,
-  SendMessageEventData,
-} from "./events/generated/backend-events";
+  CreateUserEvent, // With default suffix
+  SendMessageEvent,
+} from "./generated/backend-events";
+
+// Example with custom prefix and suffix in config:
+// typePrefix: "Base", typeSuffix: "Data"
+// import { BaseCreateUserData, BaseSendMessageData } from "./generated/backend-events";
 
 // Type-safe event creation with runtime validation
-const userEvent = CreateUserEventData.from({
+const userEvent = CreateUserEvent.from({
   userId: "123",
   timestamp: Date.now(),
 });
@@ -81,7 +94,7 @@ console.log(BackendEvents.CREATE_USER); // "create-user"
 
 // Invalid data will throw runtime error
 try {
-  SendMessageEventData.from({
+  SendMessageEvent.from({
     messageId: "abc",
     // Missing required fields will fail validation
   });
@@ -96,7 +109,8 @@ try {
 - Runtime validation using [ajv](https://github.com/ajv-validator/ajv)
 - Type-safe event payload access
 - Enum generation for event names
-- Support for multiple event definition files
+- Customizable type naming with prefixes and suffixes
+- Support for multiple schema files
 - Configurable output directory
 
 ## License

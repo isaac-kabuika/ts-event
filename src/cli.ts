@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 import * as fs from "fs";
 import * as path from "path";
+import { glob } from "glob";
 import { program } from "commander";
 import { EventGenerator } from "./generator";
 import { Config } from "./types";
 
-const CONFIG_FILE = "ts-event.config.json";
+const CONFIG_FILE = "safe-event.config.json";
 
 program
-  .name("ts-event")
+  .name("safe-event")
   .description("Generate TypeScript event classes from JSON schemas")
   .option("-c, --config <path>", "Path to config file", CONFIG_FILE)
   .action(async (options) => {
@@ -27,12 +28,24 @@ program
 
       // Resolve paths relative to config file location
       const configDir = path.dirname(configPath);
-      config.eventFiles = config.eventFiles.map((file) =>
-        path.resolve(configDir, file)
-      );
+      const schemaDir = path.resolve(configDir, config.schemaDir);
       config.outputDir = path.resolve(configDir, config.outputDir);
 
-      const generator = new EventGenerator(config);
+      // Find all JSON files in the schema directory
+      const schemaFiles = await glob("**/*.json", { cwd: schemaDir });
+      if (schemaFiles.length === 0) {
+        console.error(`No JSON schema files found in ${schemaDir}`);
+        process.exit(1);
+      }
+
+      // Convert paths to absolute
+      const eventFiles = schemaFiles.map((file) => path.join(schemaDir, file));
+
+      const generator = new EventGenerator({
+        ...config,
+        eventFiles,
+      });
+
       generator.generate();
 
       console.log("Event generation completed successfully!");

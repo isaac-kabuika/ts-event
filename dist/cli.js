@@ -36,11 +36,12 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const glob_1 = require("glob");
 const commander_1 = require("commander");
 const generator_1 = require("./generator");
-const CONFIG_FILE = "ts-event.config.json";
+const CONFIG_FILE = "safe-event.config.json";
 commander_1.program
-    .name("ts-event")
+    .name("safe-event")
     .description("Generate TypeScript event classes from JSON schemas")
     .option("-c, --config <path>", "Path to config file", CONFIG_FILE)
     .action(async (options) => {
@@ -54,9 +55,20 @@ commander_1.program
         const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
         // Resolve paths relative to config file location
         const configDir = path.dirname(configPath);
-        config.eventFiles = config.eventFiles.map((file) => path.resolve(configDir, file));
+        const schemaDir = path.resolve(configDir, config.schemaDir);
         config.outputDir = path.resolve(configDir, config.outputDir);
-        const generator = new generator_1.EventGenerator(config);
+        // Find all JSON files in the schema directory
+        const schemaFiles = await (0, glob_1.glob)("**/*.json", { cwd: schemaDir });
+        if (schemaFiles.length === 0) {
+            console.error(`No JSON schema files found in ${schemaDir}`);
+            process.exit(1);
+        }
+        // Convert paths to absolute
+        const eventFiles = schemaFiles.map((file) => path.join(schemaDir, file));
+        const generator = new generator_1.EventGenerator({
+            ...config,
+            eventFiles,
+        });
         generator.generate();
         console.log("Event generation completed successfully!");
     }

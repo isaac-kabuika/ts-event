@@ -1,15 +1,15 @@
 {
-  "name": "ts-event",
-  "version": "1.0.0",
+  "name": "safe-event",
+  "version": "1.0.4",
   "description": "TypeScript event code generator from JSON schemas",
   "main": "dist/index.js",
   "bin": {
-    "ts-event": "./dist/cli.js"
+    "safe-event": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node ./dist/copy-template.js",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm run build && npm pack && npm publish",
     "postinstall": "node ./dist/postinstall.js"
   },
   "keywords": [
@@ -17,8 +17,12 @@
     "events",
     "code-generator"
   ],
-  "author": "",
+  "author": "Isaac K <kabuika@outlook.com>",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isaac-kabuika/ts-event.git"
+  },
   "dependencies": {
     "ajv": "^8.17.1",
     "commander": "^11.0.0",
@@ -31,6 +35,11 @@
   "files": [
     "dist",
     "README.md",
-    "ts-event.config.json.template"
-  ]
+    "safe-event.config.json.template"
+  ],
+  "publishConfig": {
+    "ignore": [
+      "!dist/postinstall.js"
+    ]
+  }
 }

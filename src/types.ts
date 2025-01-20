@@ -13,6 +13,8 @@ export interface EventsConfig {
 }
 
 export interface Config {
-  eventFiles: string[];
+  schemaDir: string;
   outputDir: string;
+  typePrefix?: string;
+  typeSuffix?: string;
 }

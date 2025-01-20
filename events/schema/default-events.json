@@ -1,0 +1,19 @@
+{
+  "prefix": "",
+  "events": {
+    "HEALTH_CHECK": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

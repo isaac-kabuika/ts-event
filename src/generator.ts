@@ -3,9 +3,9 @@ import * as path from "path";
 import { EventsConfig, Config } from "./types";
 
 export class EventGenerator {
-  private readonly config: Config;
+  private readonly config: Config & { eventFiles: string[] };
 
-  constructor(config: Config) {
+  constructor(config: Config & { eventFiles: string[] }) {
     this.config = config;
   }
 

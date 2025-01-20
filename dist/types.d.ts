@@ -11,6 +11,8 @@ export interface EventsConfig {
     events: Record<string, EventDefinition>;
 }
 export interface Config {
-    eventFiles: string[];
+    schemaDir: string;
     outputDir: string;
+    typePrefix?: string;
+    typeSuffix?: string;
 }
