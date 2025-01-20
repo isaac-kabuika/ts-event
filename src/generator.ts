@@ -10,7 +10,11 @@ export class EventGenerator {
   }
 
   private generateEventClass(eventName: string, schema: any): string {
-    const className = eventName;
+    // Convert dot notation to camelCase class name
+    const className = eventName
+      .split(".")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join("");
 
     const interfaceProps = Object.entries(schema.properties)
       .map(([key, value]: [string, any]) => {
@@ -41,7 +45,7 @@ export class ${className}EventData {
   private validate(): void {
     const validate = JsonValidator.init().compile(${JSON.stringify(schema)});
     if (!validate(this.data)) {
-      throw new Error(\`Invalid ${className} data: \${JSON.stringify(validate.errors)}\`);
+      throw new Error(\`Invalid ${eventName} data: \${JSON.stringify(validate.errors)}\`);
     }
   }
 
