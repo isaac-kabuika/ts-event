@@ -165,7 +165,9 @@ Wait for multiple related events before processing:
 eventBus.onDependentEvents({
   events: [UserEvents["profile.created"], UserEvents["role.assigned"]],
   callback: (buffer) => {
-    const [profile, role] = buffer;
+    // Access events by their names
+    const profile = buffer[UserEvents["profile.created"]];
+    const role = buffer[UserEvents["role.assigned"]];
     console.log("User setup complete:", { profile, role });
   },
 });

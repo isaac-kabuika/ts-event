@@ -19,12 +19,11 @@ interface OnEventParams {
 
 interface OnDependentEventsParams {
   events: string[];
-  callback: (buffer: any[]) => void;
+  callback: (buffer: Record<string, any>) => void;
 }
 
 type BufferMap = Map<string, Map<string, any>>;
-
-type CallbackMap = Map<string, (buffer: any[]) => void>;
+type CallbackMap = Map<string, (buffer: Record<string, any>) => void>;
 
 export class EventBus {
   private static _instance: EventBus;
@@ -87,8 +86,16 @@ export class EventBus {
         buffer.set(event, payload.data);
 
         if (params.events.every((e) => buffer.has(e))) {
-          const dataBuffer = params.events.map((e) => buffer.get(e));
-          this.callbacks.get(callbackId)!(dataBuffer);
+          // Convert buffer Map to Record object
+          const bufferObj = Array.from(buffer.entries()).reduce(
+            (obj, [event, data]) => ({
+              ...obj,
+              [event]: data,
+            }),
+            {} as Record<string, any>
+          );
+
+          this.callbacks.get(callbackId)!(bufferObj);
           this.eventBuffer.delete(payload.correlationId);
         }
       });
