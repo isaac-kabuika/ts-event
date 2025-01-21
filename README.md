@@ -96,6 +96,93 @@ function handleEvent(type: string, data: any) {
 }
 ```
 
+## EventBus
+
+A lightweight event management system that supports both single event listening and buffered event handling with correlation IDs.
+
+### Basic Usage
+
+```typescript
+import { EventBus } from "./EventBus";
+import {
+  userEvents,
+  RoleAssignedEventData,
+  RoleAssignedEventPayload,
+} from "./events/generated/user-events";
+
+// Initialize
+const eventBus = EventBus.init();
+
+// Listen to single events
+eventBus.onEvent({
+  event: userEvents["role.assigned"],
+  callback: (data: RoleAssignedEventPayload, correlationId?: string) => {
+    console.log("Role assigned:", data, "correlation:", correlationId);
+  },
+});
+
+// Emit events - with or without correlation ID
+eventBus.emitEvent({
+  event: userEvents["role.assigned"],
+  data: RoleAssignedEventData.from({
+    userId: "123",
+    role: "editor",
+    assignedBy: "456",
+  }),
+});
+
+// With correlation ID
+eventBus.emitEvent({
+  event: userEvents["role.assigned"],
+  data: RoleAssignedEventData.from({
+    userId: "123",
+    role: "editor",
+    assignedBy: "456",
+  }),
+  correlationId: "correlation-123",
+});
+```
+
+### Buffered Events Example
+
+```typescript
+import {
+  userEvents,
+  ProfileCreatedEventData,
+  ProfileCreatedEventPayload,
+  RoleAssignedEventData,
+  RoleAssignedEventPayload,
+} from "./events/generated/user-events";
+
+// Listen for multiple related events
+eventBus.onDependentEvents({
+  events: [userEvents["profile.created"], userEvents["role.assigned"]],
+  callback: (
+    buffer: [ProfileCreatedEventPayload, RoleAssignedEventPayload]
+  ) => {
+    const [profileEvent, roleEvent] = buffer;
+    console.log("Profile created and role assigned:", profileEvent, roleEvent);
+  },
+});
+
+// Events must have matching correlation IDs to be buffered together
+eventBus.emitEvent({
+  event: userEvents["profile.created"],
+  data: ProfileCreatedEventData.from({
+    /* ... */
+  }),
+  correlationId: "request-123",
+});
+
+eventBus.emitEvent({
+  event: userEvents["role.assigned"],
+  data: RoleAssignedEventData.from({
+    /* ... */
+  }),
+  correlationId: "request-123",
+});
+```
+
 ## License
 
 MIT
