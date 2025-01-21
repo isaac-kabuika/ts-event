@@ -32,23 +32,25 @@ After installation, a `safe-event.config.json` file is created in your project r
 
 ### 2. Define Events
 
-Create event schema files in your schema directory (e.g. `events/schema/user-events.json`):
+Create event schema files in your schema directory (e.g. `events/schema/user-events.json`). The schema format follows the [Ajv JSON Schema specification](https://ajv.js.org/json-schema.html):
 
 ```json
 {
   "domain": "user",
   "events": {
-    "profile.updated": {
+    "role.assigned": {
       "schema": {
         "type": "object",
         "properties": {
           "userId": { "type": "string" },
-          "changes": {
-            "type": "object",
-            "additionalProperties": true
-          }
+          "role": {
+            "type": "string",
+            "enum": ["admin", "editor", "viewer"]
+          },
+          "assignedBy": { "type": "string" },
+          "expiresAt": { "type": "number" }
         },
-        "required": ["userId"],
+        "required": ["userId", "role", "assignedBy"],
         "additionalProperties": false
       }
     }
@@ -62,30 +64,34 @@ Create event schema files in your schema directory (e.g. `events/schema/user-eve
 npx safe-event
 ```
 
+> **Note:** Run this command whenever you update your event schemas to regenerate the TypeScript types.
+
 ### 4. Use Generated Types
 
 ```typescript
 import {
   userEvents,
-  profileUpdatedEventData,
-  profileUpdatedEventPayload,
+  RoleAssignedEventData,
+  RoleAssignedEventPayload,
 } from "./events/generated/user-events";
 
 // Create type-safe event with validation
-const event = profileUpdatedEventData.from({
+const event = RoleAssignedEventData.from({
   userId: "123",
-  changes: { name: "John" },
+  role: "editor", // Type-safe: only "admin" | "editor" | "viewer" allowed
+  assignedBy: "456",
+  expiresAt: Date.now() + 86400000,
 });
 
 // Get event type string
-const eventType = userEvents["profile.updated"]; // "user:profile.updated"
+const eventType = userEvents["role.assigned"]; // "user:role.assigned"
 
 // Type casting example
 function handleEvent(type: string, data: any) {
-  if (type === userEvents["profile.updated"]) {
-    // data is now typed as profileUpdatedEventPayload
-    const payload = data as profileUpdatedEventPayload;
-    console.log(payload.userId);
+  if (type === userEvents["role.assigned"]) {
+    // data is now typed as RoleAssignedEventPayload
+    const payload = data as RoleAssignedEventPayload;
+    console.log(`${payload.role} role assigned by ${payload.assignedBy}`);
   }
 }
 ```
