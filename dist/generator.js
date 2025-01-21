@@ -55,7 +55,9 @@ class EventGenerator {
                     : value.type === "boolean"
                         ? "boolean"
                         : "any";
-            return `  ${key}: ${type};`;
+            // Add optional modifier (?) for non-required fields
+            const isRequired = schema.required?.includes(key);
+            return `  ${key}${isRequired ? "" : "?"}: ${type};`;
         })
             .join("\n");
         return `
