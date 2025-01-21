@@ -14,7 +14,9 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EventGenerator = void 0;
+exports.EventBus = exports.EventGenerator = void 0;
 var generator_1 = require("./generator");
 Object.defineProperty(exports, "EventGenerator", { enumerable: true, get: function () { return generator_1.EventGenerator; } });
+var event_bus_1 = require("./event-bus");
+Object.defineProperty(exports, "EventBus", { enumerable: true, get: function () { return event_bus_1.EventBus; } });
 __exportStar(require("./types"), exports);
