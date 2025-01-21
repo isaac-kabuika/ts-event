@@ -98,76 +98,81 @@ function handleEvent(type: string, data: any) {
 
 ## EventBus
 
-A lightweight event management system that supports both single event listening and buffered event handling with correlation IDs.
+A simple way to emit and listen to events across your application.
 
-### Basic Usage
+### Basic Example
 
 ```typescript
 import { EventBus } from "./EventBus";
 import {
-  userEvents,
+  UserEvents,
   RoleAssignedEventData,
-  RoleAssignedEventPayload,
 } from "./events/generated/user-events";
 
 // Initialize
 const eventBus = EventBus.init();
 
-// Listen to single events
+// Listen for events
 eventBus.onEvent({
-  event: userEvents["role.assigned"],
-  callback: (data: RoleAssignedEventPayload, correlationId?: string) => {
-    console.log("Role assigned:", data, "correlation:", correlationId);
+  event: UserEvents["role.assigned"],
+  callback: (data) => {
+    console.log("New role assigned:", data.role);
   },
 });
 
-// Emit events - with or without correlation ID
+// Emit events
 eventBus.emitEvent({
-  event: userEvents["role.assigned"],
+  event: UserEvents["role.assigned"],
   data: RoleAssignedEventData.from({
     userId: "123",
     role: "editor",
     assignedBy: "456",
   }),
-});
-
-// With correlation ID
-eventBus.emitEvent({
-  event: userEvents["role.assigned"],
-  data: RoleAssignedEventData.from({
-    userId: "123",
-    role: "editor",
-    assignedBy: "456",
-  }),
-  correlationId: "correlation-123",
 });
 ```
 
-### Buffered Events Example
+### Advanced Features
+
+#### Correlation IDs
+
+Use correlation IDs to track related events:
 
 ```typescript
-import {
-  userEvents,
-  ProfileCreatedEventData,
-  ProfileCreatedEventPayload,
-  RoleAssignedEventData,
-  RoleAssignedEventPayload,
-} from "./events/generated/user-events";
+// Emit with correlation ID
+eventBus.emitEvent({
+  event: UserEvents["role.assigned"],
+  data: RoleAssignedEventData.from({
+    /* ... */
+  }),
+  correlationId: "request-123",
+});
 
-// Listen for multiple related events
+// Access correlation ID in listener
+eventBus.onEvent({
+  event: UserEvents["role.assigned"],
+  callback: (data, correlationId) => {
+    console.log(`Event ${correlationId}:`, data);
+  },
+});
+```
+
+#### Buffered Events
+
+Wait for multiple related events before processing:
+
+```typescript
+// Listen for multiple events
 eventBus.onDependentEvents({
-  events: [userEvents["profile.created"], userEvents["role.assigned"]],
-  callback: (
-    buffer: [ProfileCreatedEventPayload, RoleAssignedEventPayload]
-  ) => {
-    const [profileEvent, roleEvent] = buffer;
-    console.log("Profile created and role assigned:", profileEvent, roleEvent);
+  events: [UserEvents["profile.created"], UserEvents["role.assigned"]],
+  callback: (buffer) => {
+    const [profile, role] = buffer;
+    console.log("User setup complete:", { profile, role });
   },
 });
 
-// Events must have matching correlation IDs to be buffered together
+// Emit related events
 eventBus.emitEvent({
-  event: userEvents["profile.created"],
+  event: UserEvents["profile.created"],
   data: ProfileCreatedEventData.from({
     /* ... */
   }),
@@ -175,7 +180,7 @@ eventBus.emitEvent({
 });
 
 eventBus.emitEvent({
-  event: userEvents["role.assigned"],
+  event: UserEvents["role.assigned"],
   data: RoleAssignedEventData.from({
     /* ... */
   }),
