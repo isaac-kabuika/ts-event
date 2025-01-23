@@ -27,7 +27,9 @@ const ${className}Schema = ${zodSchemaStr};
 export type ${className}EventPayload = z.infer<typeof ${className}Schema>;
 
 export class ${className}EventData {
-  constructor(private readonly data: unknown) {
+  private readonly data: ${className}EventPayload;
+
+  constructor(data: unknown) {
     const payload = typeof data === 'object' && data !== null && 'data' in data
       ? (data as any).data
       : data;
