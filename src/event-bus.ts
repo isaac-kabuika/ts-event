@@ -22,6 +22,12 @@ interface OnDependentEventsParams {
   callback: (buffer: Record<string, any>) => void;
 }
 
+interface OnceEventParams {
+  event: string;
+  correlationId: string;
+  callback: (data: any) => void;
+}
+
 type BufferMap = Map<string, Map<string, any>>;
 type CallbackMap = Map<string, (buffer: Record<string, any>) => void>;
 
@@ -100,5 +106,17 @@ export class EventBus {
         }
       });
     });
+  }
+
+  // Listen for a single occurrence of an event with matching correlationId
+  onceEvent(params: OnceEventParams) {
+    const listener = (payload: EventPayload) => {
+      if (payload.correlationId === params.correlationId) {
+        params.callback(payload.data);
+        this.eventEmitter.removeListener(params.event, listener);
+      }
+    };
+
+    this.eventEmitter.on(params.event, listener);
   }
 }

@@ -190,6 +190,21 @@ eventBus.emitEvent({
 });
 ```
 
+#### One-time Events
+
+Listen for a single occurrence of an event with a specific correlation ID:
+
+```typescript
+eventBus.onceEvent({
+  event: UserEvents["role.assigned"],
+  correlationId: "request-123",
+  callback: (data) => {
+    console.log("Role assigned:", data);
+    // Listener automatically detaches after this callback
+  },
+});
+```
+
 ## License
 
 MIT

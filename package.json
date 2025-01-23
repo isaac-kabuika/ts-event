@@ -10,7 +10,8 @@
     "build": "tsc && node ./dist/copy-template.js",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build",
-    "postinstall": "node ./dist/postinstall.js"
+    "postinstall": "node ./dist/postinstall.js",
+    "release": "npm version patch && rm -f ./*.tgz && npm pack && npm publish"
   },
   "keywords": [
     "typescript",
