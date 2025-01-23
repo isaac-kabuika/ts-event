@@ -15,18 +15,55 @@ export class EventGenerator {
       return schema.$ref.split("/").pop();
     }
 
+    // Handle enum types
+    if (schema.enum) {
+      return schema.enum
+        .map((value: any) => {
+          if (typeof value === "string") {
+            return `"${value}"`;
+          }
+          return value;
+        })
+        .join(" | ");
+    }
+
+    // Handle const values
+    if (schema.const !== undefined) {
+      if (typeof schema.const === "string") {
+        return `"${schema.const}"`;
+      }
+      return typeof schema.const;
+    }
+
     switch (schema.type) {
       case "string":
+        // Handle string formats and patterns
+        if (schema.pattern) {
+          return "string"; // Could potentially generate a more specific type using template literal types
+        }
         return "string";
       case "number":
       case "integer":
+        // Handle numeric restrictions
+        if (schema.enum) {
+          return schema.enum.join(" | ");
+        }
         return "number";
       case "boolean":
         return "boolean";
       case "array":
         if (schema.items) {
           const itemType = this.getTypeFromSchema(schema.items);
-          return `${itemType}[]`;
+          let arrayType = `${itemType}[]`;
+          // Handle tuple types with fixed length
+          if (
+            schema.minItems &&
+            schema.maxItems &&
+            schema.minItems === schema.maxItems
+          ) {
+            arrayType = `[${Array(schema.minItems).fill(itemType).join(", ")}]`;
+          }
+          return arrayType;
         }
         return "any[]";
       case "object":
@@ -40,8 +77,34 @@ export class EventGenerator {
             .join("; ");
           return `{ ${props} }`;
         }
+        // Handle additional properties
+        if (schema.additionalProperties) {
+          if (typeof schema.additionalProperties === "object") {
+            const valueType = this.getTypeFromSchema(
+              schema.additionalProperties
+            );
+            return `Record<string, ${valueType}>`;
+          }
+          return "Record<string, any>";
+        }
         return "Record<string, any>";
       default:
+        // Handle oneOf, anyOf, allOf
+        if (schema.oneOf) {
+          return schema.oneOf
+            .map((s: any) => this.getTypeFromSchema(s))
+            .join(" | ");
+        }
+        if (schema.anyOf) {
+          return schema.anyOf
+            .map((s: any) => this.getTypeFromSchema(s))
+            .join(" | ");
+        }
+        if (schema.allOf) {
+          return schema.allOf
+            .map((s: any) => this.getTypeFromSchema(s))
+            .join(" & ");
+        }
         return "any";
     }
   }

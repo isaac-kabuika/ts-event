@@ -40,6 +40,41 @@ class EventGenerator {
     constructor(config) {
         this.config = config;
     }
+    getTypeFromSchema(schema) {
+        if (schema.$ref) {
+            // Handle references - extract the type name from the reference
+            return schema.$ref.split("/").pop();
+        }
+        switch (schema.type) {
+            case "string":
+                return "string";
+            case "number":
+            case "integer":
+                return "number";
+            case "boolean":
+                return "boolean";
+            case "array":
+                if (schema.items) {
+                    const itemType = this.getTypeFromSchema(schema.items);
+                    return `${itemType}[]`;
+                }
+                return "any[]";
+            case "object":
+                if (schema.properties) {
+                    const props = Object.entries(schema.properties)
+                        .map(([key, value]) => {
+                        const type = this.getTypeFromSchema(value);
+                        const isRequired = schema.required?.includes(key);
+                        return `${key}${isRequired ? "" : "?"}: ${type}`;
+                    })
+                        .join("; ");
+                    return `{ ${props} }`;
+                }
+                return "Record<string, any>";
+            default:
+                return "any";
+        }
+    }
     generateEventClass(eventName, schema) {
         // Convert dot notation to camelCase class name
         const className = eventName
@@ -48,14 +83,7 @@ class EventGenerator {
             .join("");
         const interfaceProps = Object.entries(schema.properties)
             .map(([key, value]) => {
-            const type = value.type === "string"
-                ? "string"
-                : value.type === "number"
-                    ? "number"
-                    : value.type === "boolean"
-                        ? "boolean"
-                        : "any";
-            // Add optional modifier (?) for non-required fields
+            const type = this.getTypeFromSchema(value);
             const isRequired = schema.required?.includes(key);
             return `  ${key}${isRequired ? "" : "?"}: ${type};`;
         })
