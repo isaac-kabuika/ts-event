@@ -16,11 +16,13 @@ export class EventGenerator {
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join("");
 
-    // Convert JSON Schema to Zod schema
-    const zodSchema = jsonSchemaToZod(schema, { module: "esm" });
+    // Convert JSON Schema to Zod schema, strip out any imports
+    const zodSchemaStr = jsonSchemaToZod(schema, { module: "none" })
+      .replace(/^import.*$/gm, "")
+      .replace(/^export default /gm, "");
 
     return `
-const ${className}Schema = ${zodSchema};
+const ${className}Schema = ${zodSchemaStr};
 
 export type ${className}EventPayload = z.infer<typeof ${className}Schema>;
 

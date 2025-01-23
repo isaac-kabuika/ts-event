@@ -4,7 +4,6 @@ export declare class EventGenerator {
     constructor(config: Config & {
         eventFiles: string[];
     });
-    private getTypeFromSchema;
     private generateEventClass;
     private generateFile;
     generate(): void;
