@@ -1,36 +1,58 @@
 import { EventEmitter } from "events";
 
+/** Represents the internal structure of an event payload */
 interface EventPayload {
   event: string;
   data: any;
   correlationId?: string;
 }
 
+/** Parameters for emitting an event */
 interface EmitEventParams {
+  /** The event name/type to emit */
   event: string;
+  /** The data payload for the event */
   data: any;
+  /** Optional correlation ID to link related events */
   correlationId?: string;
 }
 
+/** Parameters for listening to a single event */
 interface OnEventParams {
+  /** The event name/type to listen for */
   event: string;
+  /** Callback function that receives the event data and optional correlation ID */
   callback: (data: any, correlationId?: string) => void;
 }
 
+/** Parameters for listening to multiple dependent events */
 interface OnDependentEventsParams {
+  /** Array of event names/types to wait for */
   events: string[];
+  /**
+   * Callback function that receives a buffer containing all event data
+   * The buffer is a map of event names to their respective data
+   */
   callback: (buffer: Record<string, any>) => void;
 }
 
+/** Parameters for listening to a single occurrence of an event */
 interface OnceEventParams {
+  /** The event name/type to listen for */
   event: string;
+  /** The correlation ID to match */
   correlationId: string;
+  /** Callback function that receives the event data */
   callback: (data: any) => void;
 }
 
 type BufferMap = Map<string, Map<string, any>>;
 type CallbackMap = Map<string, (buffer: Record<string, any>) => void>;
 
+/**
+ * A singleton event bus that enables type-safe event emission and handling across your application.
+ * Supports correlation IDs, one-time events, and dependent event buffering.
+ */
 export class EventBus {
   private static _instance: EventBus;
   private eventEmitter: EventEmitter;
@@ -43,6 +65,11 @@ export class EventBus {
     this.callbacks = new Map();
   }
 
+  /**
+   * Initializes the EventBus singleton instance.
+   * Must be called before using the EventBus.
+   * @returns The EventBus instance
+   */
   public static init(): EventBus {
     if (!EventBus._instance) {
       EventBus._instance = new EventBus();
@@ -50,6 +77,10 @@ export class EventBus {
     return EventBus._instance;
   }
 
+  /**
+   * Gets the EventBus singleton instance.
+   * @throws Error if EventBus has not been initialized
+   */
   public static get instance(): EventBus {
     if (!EventBus._instance) {
       throw new Error("EventBus not initialized. Call EventBus.init() first.");
@@ -57,7 +88,10 @@ export class EventBus {
     return EventBus._instance;
   }
 
-  // Emit an event
+  /**
+   * Emits an event with optional correlation ID.
+   * @param params The event parameters including event name, data, and optional correlation ID
+   */
   emitEvent(params: EmitEventParams): void {
     const payload: EventPayload = {
       event: params.event,
@@ -68,14 +102,20 @@ export class EventBus {
     this.eventEmitter.emit(params.event, payload);
   }
 
-  // Listen for a single event
+  /**
+   * Listens for all occurrences of an event.
+   * @param params The event parameters including event name and callback
+   */
   onEvent(params: OnEventParams) {
     this.eventEmitter.on(params.event, (payload: EventPayload) => {
       params.callback(payload.data, payload.correlationId);
     });
   }
 
-  // Listen for dependent events
+  /**
+   * Listens for multiple events and buffers them until all events are received with matching correlation IDs.
+   * @param params The dependent events parameters including array of events and callback
+   */
   onDependentEvents(params: OnDependentEventsParams) {
     const callbackId = params.events.sort().join("-");
     this.callbacks.set(callbackId, params.callback);
@@ -108,7 +148,11 @@ export class EventBus {
     });
   }
 
-  // Listen for a single occurrence of an event with matching correlationId
+  /**
+   * Listens for a single occurrence of an event with a specific correlation ID.
+   * The listener automatically detaches after receiving a matching event.
+   * @param params The event parameters including event name, correlation ID, and callback
+   */
   onceEvent(params: OnceEventParams) {
     const listener = (payload: EventPayload) => {
       if (payload.correlationId === params.correlationId) {
