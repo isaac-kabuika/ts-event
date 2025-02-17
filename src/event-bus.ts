@@ -47,17 +47,17 @@ interface OnceEventParams {
   callback: (data: any) => void;
 }
 
-interface EmitAwaitParams<T> {
+interface EmitAwaitParams<TEmit = unknown, TListen = unknown> {
   /** Event to emit */
   emitEvent: {
     event: string;
-    data: any;
+    data: TEmit;
   };
   /** Event to wait for */
   listenEvent: {
     event: string;
   };
-  /** Timeout in milliseconds (default: 5000) */
+  /** Timeout in milliseconds (default: Infinity) */
   timeout?: number;
 }
 
@@ -73,6 +73,7 @@ export class EventBus {
   private eventEmitter: EventEmitter;
   private eventBuffer: BufferMap;
   private callbacks: CallbackMap;
+  private defaultEmitAwaitTimeout: number = Infinity;
 
   private constructor() {
     this.eventEmitter = new EventEmitter();
@@ -85,9 +86,11 @@ export class EventBus {
    * Must be called before using the EventBus.
    * @returns The EventBus instance
    */
-  public static init(): EventBus {
+  public static init(config?: { defaultTimeout?: number }): EventBus {
     if (!EventBus._instance) {
       EventBus._instance = new EventBus();
+      EventBus._instance.defaultEmitAwaitTimeout =
+        config?.defaultTimeout ?? EventBus._instance.defaultEmitAwaitTimeout;
     }
     return EventBus._instance;
   }
@@ -179,28 +182,29 @@ export class EventBus {
     this.eventEmitter.on(params.event, listener);
   }
 
-  public static async emitAwait<T>(params: EmitAwaitParams<T>): Promise<T> {
+  public async emitAwait<TListen = unknown, TEmit = unknown>(
+    params: EmitAwaitParams<TEmit, TListen>
+  ): Promise<TListen> {
     const correlationId = crypto.randomUUID();
-    const timeout = params.timeout || Infinity;
+    const timeout = params.timeout ?? this.defaultEmitAwaitTimeout;
 
     return new Promise((resolve, reject) => {
-      // Setup timeout rejection
       const timeoutId = setTimeout(() => {
         reject(new Error(`emitAwait timed out after ${timeout}ms`));
       }, timeout);
 
-      // Setup once listener
-      EventBus.instance.onceEvent({
+      // Setup once listener with TListen type
+      this.onceEvent({
         event: params.listenEvent.event,
         correlationId,
-        callback: (data: T) => {
+        callback: (data: TListen) => {
           clearTimeout(timeoutId);
           resolve(data);
         },
       });
 
-      // Emit the event with correlation ID
-      EventBus.instance.emitEvent({
+      // Emit the event with TEmit type data
+      this.emitEvent({
         event: params.emitEvent.event,
         data: {
           ...params.emitEvent.data,
