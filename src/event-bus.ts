@@ -182,7 +182,7 @@ export class EventBus {
     this.eventEmitter.on(params.event, listener);
   }
 
-  public async emitAwait<TListen = unknown, TEmit = unknown>(
+  public async emitAwait<TEmit = unknown, TListen = unknown>(
     params: EmitAwaitParams<TEmit, TListen>
   ): Promise<TListen> {
     const correlationId = crypto.randomUUID();
