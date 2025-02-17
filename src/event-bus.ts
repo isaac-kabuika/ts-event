@@ -207,7 +207,7 @@ export class EventBus {
       this.emitEvent({
         event: params.emitEvent.event,
         data: {
-          ...params.emitEvent.data,
+          data: params.emitEvent.data,
           correlationId: correlationId,
         },
       });
