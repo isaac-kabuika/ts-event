@@ -57,7 +57,7 @@ interface EmitAwaitParams<TEmit = unknown, TListen = unknown> {
   listenEvent: {
     event: string;
   };
-  /** Timeout in milliseconds (default: Infinity) */
+  /** Timeout in milliseconds (default: 30) */
   timeout?: number;
 }
 
@@ -73,7 +73,7 @@ export class EventBus {
   private eventEmitter: EventEmitter;
   private eventBuffer: BufferMap;
   private callbacks: CallbackMap;
-  private defaultEmitAwaitTimeout: number = Infinity;
+  private defaultEmitAwaitTimeoutMs: number = 1000 * 30;
 
   private constructor() {
     this.eventEmitter = new EventEmitter();
@@ -89,8 +89,8 @@ export class EventBus {
   public static init(config?: { defaultTimeout?: number }): EventBus {
     if (!EventBus._instance) {
       EventBus._instance = new EventBus();
-      EventBus._instance.defaultEmitAwaitTimeout =
-        config?.defaultTimeout ?? EventBus._instance.defaultEmitAwaitTimeout;
+      EventBus._instance.defaultEmitAwaitTimeoutMs =
+        config?.defaultTimeout ?? EventBus._instance.defaultEmitAwaitTimeoutMs;
     }
     return EventBus._instance;
   }
@@ -186,9 +186,10 @@ export class EventBus {
     params: EmitAwaitParams<TEmit, TListen>
   ): Promise<TListen> {
     const correlationId = crypto.randomUUID();
-    const timeout = params.timeout ?? this.defaultEmitAwaitTimeout;
+    const timeout = params.timeout ?? this.defaultEmitAwaitTimeoutMs;
 
     return new Promise((resolve, reject) => {
+      // Setup timeout rejection
       const timeoutId = setTimeout(() => {
         reject(new Error(`emitAwait timed out after ${timeout}ms`));
       }, timeout);
@@ -206,13 +207,8 @@ export class EventBus {
       // Emit the event with TEmit type data
       this.emitEvent({
         event: params.emitEvent.event,
-        data: {
-          payload: {
-            // Because of how event data object are generated in ./generator.ts
-            ...params.emitEvent.data,
-            correlationId: correlationId,
-          },
-        },
+        data: params.emitEvent.data,
+        correlationId,
       });
     });
   }

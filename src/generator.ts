@@ -16,23 +16,8 @@ export class EventGenerator {
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join("");
 
-    // Add correlationId to schema properties
-    const mergedSchema = {
-      ...schema,
-      properties: {
-        ...schema.properties,
-        correlationId: {
-          type: "string",
-          description: "Optional correlation ID for event tracking",
-        },
-      },
-      required: (schema.required || []).filter(
-        (req: string) => req !== "correlationId"
-      ),
-    };
-
-    // Convert merged JSON Schema to Zod schema
-    const zodSchemaStr = jsonSchemaToZod(mergedSchema, { module: "none" })
+    // Convert JSON Schema to Zod schema, strip out any imports
+    const zodSchemaStr = jsonSchemaToZod(schema, { module: "none" })
       .replace(/^import.*$/gm, "")
       .replace(/^export default /gm, "");
 
