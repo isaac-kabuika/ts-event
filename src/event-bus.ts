@@ -207,8 +207,11 @@ export class EventBus {
       this.emitEvent({
         event: params.emitEvent.event,
         data: {
-          data: params.emitEvent.data,
-          correlationId: correlationId,
+          payload: {
+            // Because of how event data object are generated in ./generator.ts
+            ...params.emitEvent.data,
+            correlationId: correlationId,
+          },
         },
       });
     });
