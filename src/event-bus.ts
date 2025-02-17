@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import crypto from "crypto";
 
 /** Represents the internal structure of an event payload */
 interface EventPayload {
@@ -44,6 +45,20 @@ interface OnceEventParams {
   correlationId: string;
   /** Callback function that receives the event data */
   callback: (data: any) => void;
+}
+
+interface EmitAwaitParams<T> {
+  /** Event to emit */
+  emitEvent: {
+    event: string;
+    data: any;
+  };
+  /** Event to wait for */
+  listenEvent: {
+    event: string;
+  };
+  /** Timeout in milliseconds (default: 5000) */
+  timeout?: number;
 }
 
 type BufferMap = Map<string, Map<string, any>>;
@@ -162,5 +177,36 @@ export class EventBus {
     };
 
     this.eventEmitter.on(params.event, listener);
+  }
+
+  public static async emitAwait<T>(params: EmitAwaitParams<T>): Promise<T> {
+    const correlationId = crypto.randomUUID();
+    const timeout = params.timeout || Infinity;
+
+    return new Promise((resolve, reject) => {
+      // Setup timeout rejection
+      const timeoutId = setTimeout(() => {
+        reject(new Error(`emitAwait timed out after ${timeout}ms`));
+      }, timeout);
+
+      // Setup once listener
+      EventBus.instance.onceEvent({
+        event: params.listenEvent.event,
+        correlationId,
+        callback: (data: T) => {
+          clearTimeout(timeoutId);
+          resolve(data);
+        },
+      });
+
+      // Emit the event with correlation ID
+      EventBus.instance.emitEvent({
+        event: params.emitEvent.event,
+        data: {
+          ...params.emitEvent.data,
+          correlationId: correlationId,
+        },
+      });
+    });
   }
 }
