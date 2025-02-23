@@ -66,6 +66,18 @@ interface EmitAwaitParams<TEmit = unknown, TListen = unknown> {
 type BufferMap = Map<string, Map<string, any>>;
 type CallbackMap = Map<string, (buffer: Record<string, any>) => void>;
 
+/** Represents an active event listener subscription */
+interface EventListenerSubscription {
+  /**
+   * Removes the event listener and cleans up any related resources
+   * @example
+   * const subscription = eventBus.onEvent(...);
+   * // When done listening:
+   * subscription.destroy();
+   */
+  destroy: () => void;
+}
+
 /**
  * A singleton event bus that enables type-safe event emission and handling across your application.
  * Supports correlation IDs, one-time events, and dependent event buffering.
@@ -110,7 +122,16 @@ export class EventBus {
 
   /**
    * Emits an event with optional correlation ID.
-   * @param params The event parameters including event name, data, and optional correlation ID
+   * @param params - Configuration for event emission
+   * @param params.event - The event type/name to emit
+   * @param params.data - Payload data to send with the event
+   * @param params.correlationId - Optional identifier for tracking related events
+   * @example
+   * eventBus.emitEvent({
+   *   event: 'message.created',
+   *   data: { text: 'Hello' },
+   *   correlationId: '123'
+   * });
    */
   emitEvent(params: EmitEventParams): void {
     const payload: EventPayload = {
@@ -123,11 +144,22 @@ export class EventBus {
   }
 
   /**
-   * Listens for all occurrences of an event.
-   * @param params The event parameters including event name, correlation ID filter, and callback
-   * @returns Object with destroy method to remove the listener
+   * Listens for all occurrences of an event with optional correlation ID filtering
+   * @param params - Listener configuration
+   * @param params.event - Event type/name to listen for
+   * @param params.correlationId - Optional filter to only receive events with matching correlation ID
+   * @param params.callback - Function to execute when event is received
+   * @returns Object with destroy() method to remove this listener
+   * @example
+   * const subscription = eventBus.onEvent({
+   *   event: 'message.created',
+   *   callback: (data) => console.log(data)
+   * });
+   *
+   * // Later...
+   * subscription.destroy();
    */
-  onEvent(params: OnEventParams) {
+  onEvent(params: OnEventParams): EventListenerSubscription {
     const listener = (payload: EventPayload) => {
       // Skip if correlation ID doesn't match
       if (
@@ -149,11 +181,22 @@ export class EventBus {
   }
 
   /**
-   * Listens for multiple events and buffers them until all events are received with matching correlation IDs.
-   * @param params The dependent events parameters including array of events and callback
-   * @returns Object with destroy method to remove all listeners
+   * Listens for multiple events and buffers them until all are received with matching correlation IDs
+   * @param params - Configuration for dependent events
+   * @param params.events - Array of event types/names to wait for
+   * @param params.callback - Function called when all events are received, receives combined data
+   * @returns Object with destroy() method to remove all listeners
+   * @example
+   * eventBus.onDependentEvents({
+   *   events: ['user.created', 'profile.updated'],
+   *   callback: (combinedData) => {
+   *     console.log('All user data:', combinedData);
+   *   }
+   * });
    */
-  onDependentEvents(params: OnDependentEventsParams) {
+  onDependentEvents(
+    params: OnDependentEventsParams
+  ): EventListenerSubscription {
     const callbackId = params.events.sort().join("-");
     this.callbacks.set(callbackId, params.callback);
     const listeners: Array<{
@@ -201,12 +244,20 @@ export class EventBus {
   }
 
   /**
-   * Listens for a single occurrence of an event with a specific correlation ID.
-   * The listener automatically detaches after receiving a matching event.
-   * @param params The event parameters including event name, correlation ID, and callback
-   * @returns Object with destroy method to remove the listener
+   * Listens for a single occurrence of an event with specific correlation ID
+   * @param params - Listener configuration
+   * @param params.event - Event type/name to listen for
+   * @param params.correlationId - Required correlation ID to match
+   * @param params.callback - Function to execute when matching event is received
+   * @returns Object with destroy() method to manually remove the listener
+   * @example
+   * eventBus.onceEvent({
+   *   event: 'payment.completed',
+   *   correlationId: 'txn_123',
+   *   callback: (data) => updateOrderStatus(data)
+   * });
    */
-  onceEvent(params: OnceEventParams) {
+  onceEvent(params: OnceEventParams): EventListenerSubscription {
     const listener = (payload: EventPayload) => {
       if (payload.correlationId === params.correlationId) {
         params.callback(payload.data);
@@ -223,6 +274,27 @@ export class EventBus {
     };
   }
 
+  /**
+   * Emits an event and waits for a response event with matching correlation ID
+   * @template TEmit - Type of data being emitted
+   * @template TListen - Type of data expected in response
+   * @param params - Configuration for emit/await operation
+   * @param params.emitEvent - Event to emit (contains event name and data)
+   * @param params.listenEvent - Event to wait for (contains event name)
+   * @param params.timeout - Maximum wait time in milliseconds (default: 30000)
+   * @returns Promise that resolves with response data or rejects on timeout
+   * @example
+   * const response = await eventBus.emitAwait({
+   *   emitEvent: {
+   *     event: 'request.data',
+   *     data: { userId: 123 }
+   *   },
+   *   listenEvent: {
+   *     event: 'response.data'
+   *   },
+   *   timeout: 5000
+   * });
+   */
   public async emitAwait<TEmit = unknown, TListen = unknown>(
     params: EmitAwaitParams<TEmit, TListen>
   ): Promise<TListen> {
