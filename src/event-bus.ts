@@ -22,6 +22,8 @@ interface EmitEventParams {
 interface OnEventParams {
   /** The event name/type to listen for */
   event: string;
+  /** Optional correlation ID to filter events */
+  correlationId?: string;
   /** Callback function that receives the event data and optional correlation ID */
   callback: (data: any, correlationId?: string) => void;
 }
@@ -122,24 +124,45 @@ export class EventBus {
 
   /**
    * Listens for all occurrences of an event.
-   * @param params The event parameters including event name and callback
+   * @param params The event parameters including event name, correlation ID filter, and callback
+   * @returns Object with destroy method to remove the listener
    */
   onEvent(params: OnEventParams) {
-    this.eventEmitter.on(params.event, (payload: EventPayload) => {
+    const listener = (payload: EventPayload) => {
+      // Skip if correlation ID doesn't match
+      if (
+        params.correlationId &&
+        payload.correlationId !== params.correlationId
+      ) {
+        return;
+      }
       params.callback(payload.data, payload.correlationId);
-    });
+    };
+
+    this.eventEmitter.on(params.event, listener);
+
+    return {
+      destroy: () => {
+        this.eventEmitter.removeListener(params.event, listener);
+      },
+    };
   }
 
   /**
    * Listens for multiple events and buffers them until all events are received with matching correlation IDs.
    * @param params The dependent events parameters including array of events and callback
+   * @returns Object with destroy method to remove all listeners
    */
   onDependentEvents(params: OnDependentEventsParams) {
     const callbackId = params.events.sort().join("-");
     this.callbacks.set(callbackId, params.callback);
+    const listeners: Array<{
+      event: string;
+      listener: (payload: EventPayload) => void;
+    }> = [];
 
     params.events.forEach((event) => {
-      this.eventEmitter.on(event, (payload: EventPayload) => {
+      const listener = (payload: EventPayload) => {
         if (!payload.correlationId) return;
 
         if (!this.eventBuffer.has(payload.correlationId)) {
@@ -150,7 +173,6 @@ export class EventBus {
         buffer.set(event, payload.data);
 
         if (params.events.every((e) => buffer.has(e))) {
-          // Convert buffer Map to Record object
           const bufferObj = Array.from(buffer.entries()).reduce(
             (obj, [event, data]) => ({
               ...obj,
@@ -162,14 +184,27 @@ export class EventBus {
           this.callbacks.get(callbackId)!(bufferObj);
           this.eventBuffer.delete(payload.correlationId);
         }
-      });
+      };
+
+      this.eventEmitter.on(event, listener);
+      listeners.push({ event, listener });
     });
+
+    return {
+      destroy: () => {
+        listeners.forEach(({ event, listener }) => {
+          this.eventEmitter.removeListener(event, listener);
+        });
+        this.callbacks.delete(callbackId);
+      },
+    };
   }
 
   /**
    * Listens for a single occurrence of an event with a specific correlation ID.
    * The listener automatically detaches after receiving a matching event.
    * @param params The event parameters including event name, correlation ID, and callback
+   * @returns Object with destroy method to remove the listener
    */
   onceEvent(params: OnceEventParams) {
     const listener = (payload: EventPayload) => {
@@ -180,6 +215,12 @@ export class EventBus {
     };
 
     this.eventEmitter.on(params.event, listener);
+
+    return {
+      destroy: () => {
+        this.eventEmitter.removeListener(params.event, listener);
+      },
+    };
   }
 
   public async emitAwait<TEmit = unknown, TListen = unknown>(
